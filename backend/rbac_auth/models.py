@@ -2,9 +2,15 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
+from django.core.exceptions import ValidationError
+
+
+# P.s id у всех моделей есть по дефолту встроенные
+# Поля стандартного Django Юзера->->->|
+# |->->-> username: Уникальное имя пользователя.password: Хэш пароля | first_name: Имя пользователя | last_name: Фамилия пользователя | email: Электронная почта | is_staff: Логическое значение (True/False), определяющее доступ к панели администратора | is_active: Логическое значение (активен ли аккаунт). Используется вместо физического удаления пользователя | is_superuser: Логическое значение (является ли пользователь суперпользователем со всеми правами) | last_login: Дата и время последнего входа в систему.date_joined: Дата и время создания учетной записи.
 
 # ==========================================
-# 1. ПОЛЬЗОВАТЕЛИ (FR-1: Статусы и блокировка)
+# 1. Юзеры (FR-1: Статусы и блокировка)
 # ==========================================
 class CustomUser(AbstractUser):
     is_blocked = models.BooleanField(
@@ -24,7 +30,7 @@ class CustomUser(AbstractUser):
 
 
 # ==========================================
-# 2. РОЛИ (FR-3, FR-4: Иерархия, Системность)
+# 2. Роли (FR-3, FR-4: Иерархия, Системность)
 # ==========================================
 class CustomRole(models.Model):
     name = models.CharField(
@@ -36,7 +42,7 @@ class CustomRole(models.Model):
         blank=True, 
         verbose_name="Описание роли"
     )
-    # Помните про django-mptt/treebeard, если дерево ролей будет глубоким
+    # Помнить про django-mptt/treebeard
     parent = models.ForeignKey(
         'self', 
         on_delete=models.SET_NULL, 
@@ -50,19 +56,33 @@ class CustomRole(models.Model):
         verbose_name="Системная роль (нельзя удалить)"
     )
 
+    def clean(self):
+        super().clean()
+        # Проверяем циклическую зависимость
+        if self.parent:
+            current = self.parent
+            while current is not None:
+                if current.id == self.id:
+                    raise ValidationError(f"Ошибка: Обнаружен цикл! Роль '{self.name}' не может быть предком самой себе.")
+                current = current.parent
+
+    #Поведение самой таблицы,не её поля
     class Meta:
         verbose_name = "Роль"
         verbose_name_plural = "Роли"
 
+    #Для принта 
     def __str__(self):
         return self.name
 
+    #Удаление с проверкой на системность, Админ не может самоуничтожится
     def delete(self, *args, **kwargs):
         if self.is_system:
             raise PermissionError("Критическая ошибка: Нельзя удалить системную роль!")
         super().delete(*args, **kwargs)
 
-# Сигнал для железной защиты системных ролей от массового удаления через QuerySet
+
+#Декоратор сигналов, читай слушатель событий. Events если угодно как в Ноде
 @receiver(pre_delete, sender=CustomRole)
 def protect_system_roles(sender, instance, **kwargs):
     if instance.is_system:
@@ -70,7 +90,7 @@ def protect_system_roles(sender, instance, **kwargs):
 
 
 # ==========================================
-# 3. КАТАЛОГ РАЗДЕЛОВ
+# 3. Каталог Разделов
 # ==========================================
 class AppSection(models.Model):
     name = models.CharField(
@@ -92,11 +112,11 @@ class AppSection(models.Model):
 
 
 # ==========================================
-# 4. КАТАЛОГ ПРАВ (FR-5)
+# 4. Каталог Действий (FR-5)
 # ==========================================
 class AppPermission(models.Model):
     section = models.ForeignKey(
-        AppSection, 
+        AppSection,  #Удалили раздел == удалили действия в нем
         on_delete=models.CASCADE, 
         related_name='permissions',
         verbose_name="Раздел приложения"
@@ -112,18 +132,20 @@ class AppPermission(models.Model):
     class Meta:
         verbose_name = "Право доступа"
         verbose_name_plural = "Права доступа"
-        constraints = [
+        constraints = [ #Ограничения- НЕ может быть у нас одного и того же действия в одном и том же разделе..
             models.UniqueConstraint(fields=['section', 'codename'], name='unique_section_action')
         ]
 
-    def __str__(self):
+    #Финтифлюшка чисто для красивого вывода: Позывной раздела и действие через двоеточие
+    def __str__(self): 
         return f"{self.section.slug}:{self.codename}"
 
 
 # ==========================================
-# 5. МАТРИЦА ПРАВ (Явные ALLOW / DENY)
+# 5. Матрица прав Роль_x_Действие (Явные ALLOW / DENY)
 # ==========================================
 class RolePermission(models.Model):
+    #Список вариантов для админки
     ACCESS_CHOICES = [
         ('allow', 'Разрешить (ALLOW)'),
         ('deny', 'Запретить (DENY)'),
@@ -151,16 +173,16 @@ class RolePermission(models.Model):
     class Meta:
         verbose_name = "Правило матрицы"
         verbose_name_plural = "Матрица прав"
-        constraints = [
+        constraints = [ #Уникальная связка Роль+Действие = Разрешить/Запретить, низя сделать и allow и deny одному и тому же посту
             models.UniqueConstraint(fields=['role', 'permission'], name='unique_role_permission')
         ]
 
 
 # ==========================================
-# 6. ЛОГИ АУДИТА (FR-13, FR-14, FR-15)
+# 6. Логи Аудита (FR-13, FR-14, FR-15)
 # ==========================================
 class AuditLog(models.Model):
-    id = models.BigAutoField(primary_key=True)
+    id = models.BigAutoField(primary_key=True) #Тут специально id создаем сами, хотя он и есть в Моедлях по дефолту,нам же нужен BigInt
     user = models.ForeignKey(
         CustomUser, 
         on_delete=models.SET_NULL, 
@@ -168,7 +190,9 @@ class AuditLog(models.Model):
         blank=True, 
         related_name='audit_logs',
         verbose_name="Пользователь",
-        db_index=True # Быстрый поиск по конкретному юзеру
+        db_index=True # Мгновенный поиск (читы),по сути индексация базы данных  
+        # Если серьезно то строится полноценное Дерево с поиском по сложности O(logN) Чтобы найти запись среди миллиона базе потребуется всего около 20 операций вместо 1 000 000.
+        # Из минусов- замедляется Insert-ы и удаления
     )
     username_snapshot = models.CharField(
         max_length=150, 
@@ -199,4 +223,6 @@ class AuditLog(models.Model):
         # Автоматически пишем имя пользователя, если передан объект CustomUser
         if self.user and not self.username_snapshot:
             self.username_snapshot = self.user.username
+        super().save(*args, **kwargs)
+        self.full_clean() 
         super().save(*args, **kwargs)
