@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RBAC — Вход</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="login-page">
+  <main class="login-card card">
+    <div class="login-card__header">
+      <h1 class="login-card__title">RBAC</h1>
+      <p class="login-card__subtitle">Система управления правами доступа</p>
+    </div>
+
+    <form class="login-form" id="login-form" novalidate>
+      <div class="login-field">
+        <label class="login-field__label" for="login">Логин</label>
+        <input class="input" type="text" id="login" name="login" autocomplete="username" required>
+      </div>
+
+      <div class="login-field">
+        <label class="login-field__label" for="password">Пароль</label>
+        <input class="input" type="password" id="password" name="password" autocomplete="current-password" required>
+      </div>
+
+      <p class="login-form__error" id="login-error" hidden></p>
+
+      <button type="submit" class="btn btn--primary login-form__submit" id="login-btn">
+        Войти
+      </button>
+    </form>
+  </main>
+
+  <script type="module" src="js/login.js"></script>
+</body>
+</html>

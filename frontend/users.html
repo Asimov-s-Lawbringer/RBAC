@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RBAC — Пользователи</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="users">
+  <header class="app-header">
+    <div class="app-header__inner">
+      <a href="matrix.html" class="app-logo">RBAC</a>
+      <nav class="app-nav">
+        <a href="matrix.html" class="app-nav__link" data-page="matrix">Матрица</a>
+        <a href="users.html" class="app-nav__link" data-page="users">Пользователи</a>
+        <a href="audit.html" class="app-nav__link" data-page="audit">Журнал</a>
+        <button type="button" class="btn btn--secondary btn--sm" id="logout-btn">Выйти</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <div class="page-header">
+      <h1 class="page-title">Пользователи</h1>
+    </div>
+
+    <div class="card">
+      <div class="users-toolbar">
+        <div class="users-toolbar__search">
+          <input type="text" class="input" id="search-input" placeholder="Поиск по ФИО, логину…">
+        </div>
+      </div>
+
+      <div id="users-table-container"></div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initAppShell } from './js/layout.js';
+    initAppShell();
+  </script>
+  <script type="module" src="js/users.js"></script>
+</body>
+</html>
