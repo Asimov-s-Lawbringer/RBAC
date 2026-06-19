@@ -1,80 +1,92 @@
-const LABELS = {
-  'records:view': 'Просмотр записей',
-  'records:create': 'Создание записей',
-  'records:delete': 'Удаление записей',
-  'audit:view': 'Просмотр журнала',
-  'roles:manage': 'Управление ролями',
-};
+/**
+ * Каталог ролей и прав из backend/fixtures/init_data.json
+ * (отдельных эндпоинтов для справочников пока нет)
+ */
+const ROLES_CATALOG = [
+  { id: 1, name: 'Пользователь', parentId: null },
+  { id: 2, name: 'Менеджер', parentId: 1 },
+  { id: 3, name: 'Аудитор', parentId: null },
+  { id: 4, name: 'Администратор', parentId: null },
+];
 
-function label(section, action) {
-  return LABELS[`${section}:${action}`] || `${section}:${action}`;
+const PERMISSIONS_CATALOG = [
+  { id: 1, codename: 'view_records', name: 'Просмотр записей' },
+  { id: 2, codename: 'create_records', name: 'Создание записей' },
+  { id: 3, codename: 'delete_records', name: 'Удаление записей' },
+  { id: 4, codename: 'view_audit', name: 'Просмотр журнала логов' },
+  { id: 5, codename: 'export_audit', name: 'Экспорт логов' },
+  { id: 6, codename: 'manage_roles', name: 'Управление ролями' },
+  { id: 7, codename: 'view_matrix', name: 'Просмотр матрицы прав' },
+  { id: 8, codename: 'save_matrix', name: 'Сохранение матрицы' },
+];
+
+const CODENAME_LABELS = Object.fromEntries(
+  PERMISSIONS_CATALOG.map((p) => [p.codename, p.name])
+);
+
+function grantAt(bindings, roleId, permissionId) {
+  return bindings.find((b) => b.roleId === roleId && b.permissionId === permissionId)?.grant ?? 'none';
 }
 
-export function matrixFromApi(apiRows, apiRoles) {
-  const roles = apiRoles.map((r) => ({
-    id: r.id,
-    name: r.name,
-    parentId: r.parent_id ?? null,
-  }));
-
-  const roleByName = Object.fromEntries(roles.map((r) => [r.name, r]));
-
-  const permissions = apiRows.map((row) => ({
-    id: row.permission_id,
-    section: row.section,
-    action: row.action,
-    name: label(row.section, row.action),
-  }));
-
-  const bindings = [];
-
-  for (const row of apiRows) {
-    for (const [roleName, accessType] of Object.entries(row.roles_assigned || {})) {
-      const role = roleByName[roleName];
-      if (!role) continue;
-      bindings.push({
-        roleId: role.id,
-        permissionId: row.permission_id,
-        grant: accessType,
-      });
-    }
-  }
-
-  // наследование для отображения 🕒 (только визуал, в БД не пишется)
+function addInheritDisplay(roles, permissions, bindings) {
   for (const perm of permissions) {
     for (const role of roles) {
-      if (bindings.some((b) => b.roleId === role.id && b.permissionId === perm.id)) continue;
+      const existing = bindings.find(
+        (b) => b.roleId === role.id && b.permissionId === perm.id
+      );
+      if (existing) continue;
       if (!role.parentId) continue;
       const parentAllow = bindings.find(
-        (b) => b.roleId === role.parentId && b.permissionId === perm.id && b.grant === 'allow'
+        (b) =>
+          b.roleId === role.parentId &&
+          b.permissionId === perm.id &&
+          b.grant === 'allow'
       );
       if (parentAllow) {
         bindings.push({ roleId: role.id, permissionId: perm.id, grant: 'inherit' });
       }
     }
   }
+}
 
+/** GET /admin/matrix/ → плоский список { role_id, permission_id, grant } */
+export function matrixFromApi(apiRules) {
+  const roles = ROLES_CATALOG.map((r) => ({ ...r }));
+  const permissions = PERMISSIONS_CATALOG.map((p) => ({ id: p.id, name: p.name }));
+
+  const bindings = (apiRules || []).map((rule) => ({
+    roleId: rule.role_id,
+    permissionId: rule.permission_id,
+    grant: rule.grant,
+  }));
+
+  addInheritDisplay(roles, permissions, bindings);
   return { permissions, roles, bindings };
 }
 
-export function matrixToApi(permissions, roles, bindings) {
-  return permissions.map((perm) => {
-    const roles_assigned = {};
+/** POST /admin/matrix/ → { changes: [{ role_id, permission_id, grant }] } */
+export function matrixChangesToApi(roles, permissions, savedBindings, bindings) {
+  const changes = [];
+
+  for (const perm of permissions) {
     for (const role of roles) {
-      const grant = bindings.find(
-        (b) => b.roleId === role.id && b.permissionId === perm.id
-      )?.grant;
-      if (grant === 'allow' || grant === 'deny') {
-        roles_assigned[role.name] = grant;
-      }
+      const saved = grantAt(savedBindings, role.id, perm.id);
+      const current = grantAt(bindings, role.id, perm.id);
+
+      const savedVal = saved === 'inherit' ? 'none' : saved;
+      const currentVal = current === 'inherit' ? 'none' : current;
+
+      if (savedVal === currentVal) continue;
+
+      changes.push({
+        role_id: role.id,
+        permission_id: perm.id,
+        grant: currentVal === 'none' ? 'none' : currentVal,
+      });
     }
-    return {
-      permission_id: perm.id,
-      section: perm.section,
-      action: perm.action,
-      roles_assigned,
-    };
-  });
+  }
+
+  return { changes };
 }
 
 export function auditFromApi(rows) {
@@ -86,18 +98,23 @@ export function auditFromApi(rows) {
   }));
 }
 
-export function effectiveFromNested(nested) {
-  const list = [];
-  for (const [section, actions] of Object.entries(nested || {})) {
-    if (!actions || typeof actions !== 'object') continue;
-    for (const [action, allowed] of Object.entries(actions)) {
-      list.push({
-        name: label(section, action),
-        allowed: Boolean(allowed),
-      });
-    }
-  }
-  return list;
+/** GET /auth/me/ → permissions: { codename: 'allow' | 'deny' } */
+export function effectiveFromMe(me) {
+  const perms = me?.permissions ?? me ?? {};
+  return Object.entries(perms).map(([codename, accessType]) => ({
+    name: CODENAME_LABELS[codename] || codename,
+    allowed: accessType === 'allow',
+  }));
+}
+
+export function meToUser(me) {
+  return {
+    id: me.id,
+    login: me.username,
+    fullName: me.username,
+    status: me.is_blocked ? 'blocked' : 'active',
+    roleNames: [],
+  };
 }
 
 export function usersFromApi(rows) {

@@ -68,7 +68,18 @@ function onCellClick(e) {
   }
 
   td.innerHTML = cellHtml(next);
-  saveBtn.disabled = JSON.stringify(bindings) === JSON.stringify(savedBindings);
+  saveBtn.disabled = !hasMatrixChanges();
+}
+
+function hasMatrixChanges() {
+  return JSON.stringify(storableBindings(bindings)) !== JSON.stringify(storableBindings(savedBindings));
+}
+
+function storableBindings(list) {
+  return list
+    .filter((b) => b.grant === 'allow' || b.grant === 'deny')
+    .map((b) => ({ roleId: b.roleId, permissionId: b.permissionId, grant: b.grant }))
+    .sort((a, b) => a.roleId - b.roleId || a.permissionId - b.permissionId);
 }
 
 async function loadMatrix() {
@@ -81,6 +92,7 @@ async function loadMatrix() {
     bindings = structuredClone(view.bindings);
     savedBindings = structuredClone(view.bindings);
     renderTable();
+    saveBtn.disabled = !hasMatrixChanges();
   } catch (err) {
     renderError(tableContainer, err.message);
   }
@@ -89,12 +101,12 @@ async function loadMatrix() {
 saveBtn.addEventListener('click', async () => {
   saveBtn.disabled = true;
   try {
-    await api.saveMatrixView(permissions, roles, bindings);
+    await api.saveMatrixView(permissions, roles, bindings, savedBindings);
     savedBindings = structuredClone(bindings);
   } catch (err) {
     alert(err.message);
   }
-  saveBtn.disabled = JSON.stringify(bindings) === JSON.stringify(savedBindings);
+  saveBtn.disabled = !hasMatrixChanges();
 });
 
 loadMatrix();
