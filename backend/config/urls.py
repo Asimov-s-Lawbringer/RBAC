@@ -16,7 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from rbac_auth.views import LoginView, MeView, RecordListView, AuditLogListView, MatrixView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/auth/login/', LoginView.as_view(), name='api_login'),
+    path('api/auth/me/', MeView.as_view(), name='api_me'),
+    path('api/records/', RecordListView.as_view(), name='api_records'),
+    path('api/admin/audit-logs/', AuditLogListView.as_view(), name='api_audit_logs'),
+    path('api/admin/matrix/', MatrixView.as_view(), name='api_matrix')
 ]

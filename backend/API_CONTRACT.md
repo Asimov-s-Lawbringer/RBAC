@@ -137,3 +137,70 @@ matrix.access_type (Varchar) || Проходит через алгоритм Е�
 }]
 
 ```
+# VERSION 2.0 !!!
+
+1. Вход в систему (Login) Запрос: POST /api/auth/login/ 
+
+Тело запроса (JSON):json{ "username": "vasya", "password": "super_secret_password" }
+
+Ответ (200 OK):json{ "token": "9944b09194c90343ba43a41703b03c003" }
+
+2. Получение инфы о себе и Эффективных прав
+
+Запрос: GET /api/auth/me/ (В заголовках передаем Authorization: Token <токен>) 
+
+Ответ (200 OK): json{
+  "id": 1,
+  "username": "vasya",
+  "is_blocked": false,
+  "permissions": {
+    "view_records": "allow",
+    "create_records": "allow",
+    "delete_records": "deny",
+    "view_audit": "none"
+  }
+}
+
+Бэкенд по идее возвращает плоский словарь с кодами твоих прав из mock.js! Проверяй доступ прямо в коде: if (permissions['view_records'] === 'allow')
+
+3. Интерактивная матрица (Роль ✕ Право)
+
+Получение сетки: GET /api/admin/matrix/
+
+Ответ (200 OK):json[
+  { "id": 1, "role_id": 2, "permission_id": 3, "grant": "deny" },
+  { "id": 2, "role_id": 2, "permission_id": 2, "grant": "allow" }
+]
+
+Сохранение изменений: POST /api/admin/matrix/
+
+Тело запроса (JSON при нажатии кнопки «Сохранить»):json{
+  "changes": [
+    { "role_id": 2, "permission_id": 3, "grant": "allow" },
+    { "role_id": 5, "permission_id": 4, "grant": "none" }
+  ]
+}
+
+Примечание: Отправляй только измененные ячейки. Если ставишь allow/deny — бэкенд перезапишет правило. Если ставишь none или inherit — бэкенд сотрет запись из матрицы для этой роли, и включится наследование!
+
+4. Журнал доступа (Логи)
+
+Запрос: GET /api/admin/audit-logs/
+
+Динамические фильтры (Query params):
+
+/api/admin/audit-logs/?result=deny — только отказы.
+
+/api/admin/audit-logs/?user_id=3 — логи конкретного юзера.
+
+/api/admin/audit-logs/?date_from=2026-06-01&date_to=2026-06-15 — фильтр по датам.
+
+Ответ (200 OK):json[
+  {
+    "id": 154,
+    "username": "vasya",
+    "action": "view_records",
+    "result": "deny",
+    "created_at": "2026-06-16 18:30:00"
+  }
+]

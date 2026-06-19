@@ -9,9 +9,9 @@ from django.core.exceptions import ValidationError
 # Поля стандартного Django Юзера->->->|
 # |->->-> username: Уникальное имя пользователя.password: Хэш пароля | first_name: Имя пользователя | last_name: Фамилия пользователя | email: Электронная почта | is_staff: Логическое значение (True/False), определяющее доступ к панели администратора | is_active: Логическое значение (активен ли аккаунт). Используется вместо физического удаления пользователя | is_superuser: Логическое значение (является ли пользователь суперпользователем со всеми правами) | last_login: Дата и время последнего входа в систему.date_joined: Дата и время создания учетной записи.
 
-# ==========================================
-# 1. Юзеры (FR-1: Статусы и блокировка)
-# ==========================================
+
+# 1 Юзеры (FR-1: Статусы и блокировка)
+
 class CustomUser(AbstractUser):
     is_blocked = models.BooleanField(
         default=False, 
@@ -29,9 +29,9 @@ class CustomUser(AbstractUser):
         verbose_name_plural = "Пользователи"
 
 
-# ==========================================
-# 2. Роли (FR-3, FR-4: Иерархия, Системность)
-# ==========================================
+
+# 2 Роли (FR-3, FR-4: Иерархия, Системность)
+
 class CustomRole(models.Model):
     name = models.CharField(
         max_length=100, 
@@ -58,7 +58,7 @@ class CustomRole(models.Model):
 
     def clean(self):
         super().clean()
-        # Проверяем циклическую зависимость
+        # Сделал проверку на рекурсию в ролях, ещё одна победа я считаю!
         if self.parent:
             current = self.parent
             while current is not None:
@@ -89,9 +89,9 @@ def protect_system_roles(sender, instance, **kwargs):
         raise PermissionError("Критическая ошибка: Нельзя удалить системную роль через QuerySet!")
 
 
-# ==========================================
-# 3. Каталог Разделов
-# ==========================================
+
+# 3 Каталог Разделов
+
 class AppSection(models.Model):
     name = models.CharField(
         max_length=100, 
@@ -111,9 +111,9 @@ class AppSection(models.Model):
         return self.name
 
 
-# ==========================================
-# 4. Каталог Действий (FR-5)
-# ==========================================
+
+# 4 Каталог Действий (FR-5)
+
 class AppPermission(models.Model):
     section = models.ForeignKey(
         AppSection,  #Удалили раздел == удалили действия в нем
@@ -141,9 +141,9 @@ class AppPermission(models.Model):
         return f"{self.section.slug}:{self.codename}"
 
 
-# ==========================================
-# 5. Матрица прав Роль_x_Действие (Явные ALLOW / DENY)
-# ==========================================
+
+# 5 Матрица прав Роль_x_Действие (Явные ALLOW / DENY)
+
 class RolePermission(models.Model):
     #Список вариантов для админки
     ACCESS_CHOICES = [
@@ -178,9 +178,9 @@ class RolePermission(models.Model):
         ]
 
 
-# ==========================================
-# 6. Логи Аудита (FR-13, FR-14, FR-15)
-# ==========================================
+
+# 6 Логи Аудита (FR-13, FR-14, FR-15)
+
 class AuditLog(models.Model):
     id = models.BigAutoField(primary_key=True) #Тут специально id создаем сами, хотя он и есть в Моедлях по дефолту,нам же нужен BigInt
     user = models.ForeignKey(
@@ -226,3 +226,16 @@ class AuditLog(models.Model):
         super().save(*args, **kwargs)
         self.full_clean() 
         super().save(*args, **kwargs)
+
+# 7 Чуть не забыл,конечно же - записи пользаков 
+class Record(models.Model):
+    title = models.CharField(max_length=200, verbose_name="Заголовок записи")
+    content = models.TextField(verbose_name="Содержимое записи")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    class Meta:
+        verbose_name = "Запись"
+        verbose_name_plural = "Записи"
+
+    def __str__(self):
+        return self.title
