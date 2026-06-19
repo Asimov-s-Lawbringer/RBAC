@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { requireAuth, getSession } from './auth.js';
+import { requireAuth, getSession, hasPermission } from './auth.js';
 import { renderLoading, renderError, statusLabel } from './utils.js';
 
 if (!requireAuth()) {}
@@ -47,16 +47,20 @@ async function init() {
       : '<span class="role-chips__empty">Роли не переданы API</span>';
 
     const rightsHtml = rights.length
-      ? rights.map((r) => `
+      ? rights.map((r) => {
+          const statusClass = r.accessType === 'allow' ? 'allowed' : r.accessType === 'deny' ? 'denied' : 'none';
+          return `
           <div class="effective-card">
             <div class="effective-card__name">${r.name}</div>
-            <span class="effective-card__status effective-card__status--${r.allowed ? 'allowed' : 'denied'}">
-              ${r.allowed ? 'разрешено' : 'запрещено'}
+            <span class="effective-card__status effective-card__status--${statusClass}">
+              ${r.label}
             </span>
-          </div>`).join('')
+          </div>`;
+        }).join('')
       : '<p style="color:#64748b">Нет данных о правах</p>';
 
     container.innerHTML = `
+      ${hasPermission('manage_roles') ? '<a href="users.html" class="back-link">← К списку пользователей</a>' : ''}
       <div class="user-page">
         <div class="user-page__left">
           <h1 class="user-page__title">Пользователь · ${user.fullName}</h1>

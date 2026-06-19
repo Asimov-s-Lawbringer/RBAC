@@ -20,9 +20,24 @@ const PERMISSIONS_CATALOG = [
   { id: 8, codename: 'save_matrix', name: 'Сохранение матрицы' },
 ];
 
-const CODENAME_LABELS = Object.fromEntries(
+export const CODENAME_LABELS = Object.fromEntries(
   PERMISSIONS_CATALOG.map((p) => [p.codename, p.name])
 );
+
+const ACCESS_LABELS = {
+  allow: 'разрешено',
+  deny: 'запрещено',
+  none: 'нет',
+};
+
+/** Плоский словарь прав из GET /auth/me/ или GET /admin/users/:id/ */
+export function permissionsDict(me) {
+  return me?.permissions ?? me?.effective_permissions ?? {};
+}
+
+export function codenameLabel(codename) {
+  return CODENAME_LABELS[codename] || codename;
+}
 
 function grantAt(bindings, roleId, permissionId) {
   return bindings.find((b) => b.roleId === roleId && b.permissionId === permissionId)?.grant ?? 'none';
@@ -90,20 +105,25 @@ export function matrixChangesToApi(roles, permissions, savedBindings, bindings) 
 }
 
 export function auditFromApi(rows) {
-  return rows.map((row) => ({
-    time: row.created_at,
-    subject: row.username ?? row.username_snapshot ?? '—',
-    action: row.action ?? row.action_codename ?? '—',
-    result: row.result,
-  }));
+  return rows.map((row) => {
+    const action = row.action ?? row.action_codename ?? '—';
+    return {
+      time: row.created_at,
+      subject: row.username ?? row.username_snapshot ?? '—',
+      action: codenameLabel(action),
+      result: row.result,
+    };
+  });
 }
 
-/** GET /auth/me/ или GET /admin/users/:id/ → словарь прав */
+/** GET /auth/me/ или GET /admin/users/:id/ → список для карточки (allow / deny / none) */
 export function effectiveFromMe(me) {
-  const perms = me?.permissions ?? me?.effective_permissions ?? me ?? {};
+  const perms = permissionsDict(me);
   return Object.entries(perms).map(([codename, accessType]) => ({
-    name: CODENAME_LABELS[codename] || codename,
-    allowed: accessType === 'allow',
+    name: codenameLabel(codename),
+    codename,
+    accessType,
+    label: ACCESS_LABELS[accessType] || accessType,
   }));
 }
 

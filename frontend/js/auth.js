@@ -1,6 +1,13 @@
 import { API_BASE } from './api.js';
+import { permissionsDict } from './api-adapters.js';
 
 const SESSION_KEY = 'rbac_session';
+
+const HOME_BY_PERMISSION = [
+  { perm: 'view_matrix', page: 'matrix.html' },
+  { perm: 'manage_roles', page: 'users.html' },
+  { perm: 'view_audit', page: 'audit.html' },
+];
 
 export function getSession() {
   try {
@@ -15,6 +22,25 @@ export function getToken() {
   return getSession()?.token ?? null;
 }
 
+/** Плоский словарь прав: { view_records: "allow", ... } */
+export function getPermissions() {
+  return getSession()?.permissions ?? {};
+}
+
+/** API v2: доступ только при permissions[codename] === 'allow' */
+export function hasPermission(codename) {
+  return getPermissions()[codename] === 'allow';
+}
+
+export function getDefaultPage() {
+  const session = getSession();
+  for (const { perm, page } of HOME_BY_PERMISSION) {
+    if (hasPermission(perm)) return page;
+  }
+  if (session?.userId) return `user.html#${session.userId}`;
+  return 'matrix.html';
+}
+
 export function requireAuth() {
   if (!getToken()) {
     window.location.replace('login.html');
@@ -25,7 +51,7 @@ export function requireAuth() {
 
 export function redirectIfAuthenticated() {
   if (getToken()) {
-    window.location.replace('matrix.html');
+    window.location.replace(getDefaultPage());
     return true;
   }
   return false;
@@ -46,7 +72,7 @@ export async function login(username, password) {
   }
 
   if (!response.ok) {
-    throw new Error(json.error || json.detail || 'Неверный логин или пароль');
+    throw new Error(json.error || json.detail || `Ошибка ${response.status}`);
   }
 
   if (!json.token) {
@@ -71,7 +97,7 @@ export async function login(username, password) {
 
   if (!meResponse.ok) {
     localStorage.removeItem(SESSION_KEY);
-    throw new Error(me.error || me.detail || 'Не удалось получить профиль');
+    throw new Error(me.error || me.detail || `Ошибка ${meResponse.status}`);
   }
 
   const session = {
@@ -79,6 +105,7 @@ export async function login(username, password) {
     username: me.username,
     fullName: me.username,
     userId: me.id,
+    permissions: permissionsDict(me),
   };
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   return session;

@@ -2,8 +2,16 @@ export function $(selector, parent = document) {
   return parent.querySelector(selector);
 }
 
-export function formatTime(iso) {
-  return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+export function formatTime(value) {
+  const normalized = typeof value === 'string' ? value.replace(' ', 'T') : value;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return value ?? '—';
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 const STATUS_LABELS = {

@@ -1,4 +1,4 @@
-import { login, redirectIfAuthenticated } from './auth.js';
+import { login, redirectIfAuthenticated, getDefaultPage } from './auth.js';
 import { $ } from './utils.js';
 
 if (redirectIfAuthenticated()) {
@@ -26,7 +26,7 @@ if (redirectIfAuthenticated()) {
 
     try {
       await login(loginName, password);
-      window.location.replace('matrix.html');
+      window.location.replace(getDefaultPage());
     } catch (err) {
       errorEl.textContent = err.message || 'Не удалось войти';
       errorEl.hidden = false;

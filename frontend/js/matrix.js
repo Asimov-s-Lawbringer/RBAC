@@ -1,6 +1,6 @@
 import { api } from './api.js';
 import { $, renderLoading, renderError } from './utils.js';
-import { requireAuth } from './auth.js';
+import { requireAuth, hasPermission } from './auth.js';
 
 if (!requireAuth()) {}
 
@@ -20,6 +20,7 @@ let savedBindings = [];
 
 const tableContainer = $('#matrix-table-container');
 const saveBtn = $('#save-btn');
+const canSave = hasPermission('save_matrix');
 
 function getBinding(roleId, permissionId) {
   return bindings.find((b) => b.roleId === roleId && b.permissionId === permissionId);
@@ -47,9 +48,11 @@ function renderTable() {
       <tbody>${rows}</tbody>
     </table>`;
 
-  tableContainer.querySelectorAll('td[data-role-id]').forEach((td) => {
-    td.addEventListener('click', onCellClick);
-  });
+  if (canSave) {
+    tableContainer.querySelectorAll('td[data-role-id]').forEach((td) => {
+      td.addEventListener('click', onCellClick);
+    });
+  }
 }
 
 function onCellClick(e) {
@@ -84,6 +87,7 @@ function storableBindings(list) {
 
 async function loadMatrix() {
   renderLoading(tableContainer);
+  saveBtn.hidden = !canSave;
   saveBtn.disabled = true;
   try {
     const view = await api.getMatrixView();
@@ -99,6 +103,7 @@ async function loadMatrix() {
 }
 
 saveBtn.addEventListener('click', async () => {
+  if (!canSave) return;
   saveBtn.disabled = true;
   try {
     await api.saveMatrixView(permissions, roles, bindings, savedBindings);
