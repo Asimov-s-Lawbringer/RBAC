@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { requireAuth, getSession } from './auth.js';
+import { requireAuth } from './auth.js';
 import { $, renderLoading, renderEmpty, renderError, statusLabel } from './utils.js';
 
 if (!requireAuth()) {}
@@ -60,13 +60,7 @@ async function loadUsers() {
   renderLoading(tableContainer);
   try {
     const res = await api.getUsers({ page, limit: 10, search: searchInput.value.trim() });
-    if (res.unavailable) {
-      const session = getSession();
-      const hint = session?.userId
-        ? `Бэкенд пока не отдаёт GET /api/admin/users/. <a href="user.html#${session.userId}">Открыть свой профиль</a>`
-        : 'Бэкенд пока не отдаёт GET /api/admin/users/.';
-      renderEmpty(tableContainer, 'Список пользователей недоступен', hint);
-    } else if (res.meta.total === 0) {
+    if (res.meta.total === 0) {
       renderEmpty(tableContainer, 'Пользователей нет', '');
     } else {
       renderTable(res.data);

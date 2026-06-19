@@ -1,5 +1,5 @@
 /**
- * Запросы к Django API (ветка feat/back-models-filling).
+ * Запросы к Django API.
  * Авторизация: Token в заголовке Authorization.
  */
 
@@ -102,18 +102,40 @@ export const api = {
     };
   },
 
-  /** Эндпоинта /admin/users/ на бэкенде пока нет */
-  async getUsers() {
+  async getUsers(params = {}) {
+    const raw = await request('GET', '/admin/users/');
+    let all = usersFromApi(asList(raw));
+
+    const search = params.search?.trim().toLowerCase();
+    if (search) {
+      all = all.filter(
+        (u) =>
+          u.login.toLowerCase().includes(search) ||
+          u.fullName.toLowerCase().includes(search)
+      );
+    }
+
+    const page = Number(params.page) || 1;
+    const limit = Number(params.limit) || 10;
+    const start = (page - 1) * limit;
+
     return {
-      data: [],
-      meta: { total: 0, page: 1, limit: 10, pages: 1 },
-      unavailable: true,
+      data: all.slice(start, start + limit),
+      meta: {
+        total: all.length,
+        page,
+        limit,
+        pages: Math.max(1, Math.ceil(all.length / limit)),
+      },
     };
   },
 
   async getUser(id) {
     const raw = await request('GET', `/admin/users/${id}/`);
-    return { data: usersFromApi([raw])[0] };
+    return {
+      data: usersFromApi([raw])[0],
+      permissions: effectiveFromMe(raw),
+    };
   },
 
   async getMe() {
