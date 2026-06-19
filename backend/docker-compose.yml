@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Наша база данных PostgreSQL
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=rbac_db
+      - POSTGRES_USER=rbac_user
+      - POSTGRES_PASSWORD=rbac_secure_pass
+    ports:
+      - "5432:5432"
+
+  # Наш Django бэкенд
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py loaddata init_data.json &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_NAME=rbac_db
+      - DB_USER=rbac_user
+      - DB_PASSWORD=rbac_secure_pass
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
