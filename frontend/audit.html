@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RBAC — Журнал доступа</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="audit">
+  <header class="app-header">
+    <div class="app-header__inner">
+      <a href="matrix.html" class="app-logo">RBAC</a>
+      <nav class="app-nav">
+        <a href="matrix.html" class="app-nav__link" data-page="matrix">Матрица</a>
+        <a href="users.html" class="app-nav__link" data-page="users">Пользователи</a>
+        <a href="audit.html" class="app-nav__link" data-page="audit">Журнал</a>
+        <button type="button" class="btn btn--secondary btn--sm" id="logout-btn">Выйти</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <div class="page-header">
+      <h1 class="page-title">Журнал доступа</h1>
+    </div>
+
+    <div class="card">
+      <div class="filters-row">
+        <div class="filter-group">
+          <span class="filter-group__label">Результат</span>
+          <select class="select select--auto" id="result-filter">
+            <option value="all">любой</option>
+            <option value="allow">Разрешено</option>
+            <option value="deny">Отказ</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="audit-table-container"></div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initAppShell } from './js/layout.js';
+    initAppShell();
+  </script>
+  <script type="module" src="js/audit.js"></script>
+</body>
+</html>
