@@ -98,9 +98,9 @@ export function auditFromApi(rows) {
   }));
 }
 
-/** GET /auth/me/ → permissions: { codename: 'allow' | 'deny' } */
+/** GET /auth/me/ или GET /admin/users/:id/ → словарь прав */
 export function effectiveFromMe(me) {
-  const perms = me?.permissions ?? me ?? {};
+  const perms = me?.permissions ?? me?.effective_permissions ?? me ?? {};
   return Object.entries(perms).map(([codename, accessType]) => ({
     name: CODENAME_LABELS[codename] || codename,
     allowed: accessType === 'allow',
@@ -117,12 +117,18 @@ export function meToUser(me) {
   };
 }
 
+function userStatus(u) {
+  if (u.is_blocked) return 'blocked';
+  if (u.is_active === false) return 'inactive';
+  return 'active';
+}
+
 export function usersFromApi(rows) {
   return rows.map((u) => ({
     id: u.id,
     login: u.username,
     fullName: [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username,
-    status: u.is_blocked ? 'blocked' : u.is_active ? 'active' : 'inactive',
+    status: userStatus(u),
     roleNames: (u.roles || []).map((r) => (typeof r === 'object' ? r.name : r)),
   }));
 }

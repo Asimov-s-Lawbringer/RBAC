@@ -27,15 +27,19 @@ async function init() {
     let rights = [];
 
     if (isOwnProfile) {
-      const res = await api.getMe();
+      try {
+        const res = await api.getUser(userId);
+        user = res.data;
+        rights = res.permissions;
+      } catch {
+        const res = await api.getMe();
+        user = res.data;
+        rights = res.permissions;
+      }
+    } else {
+      const res = await api.getUser(userId);
       user = res.data;
       rights = res.permissions;
-    } else {
-      renderError(
-        container,
-        'Просмотр других пользователей недоступен — на бэкенде нет GET /api/admin/users/:id/'
-      );
-      return;
     }
 
     const rolesHtml = user.roleNames.length
