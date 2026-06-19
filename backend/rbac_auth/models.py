@@ -80,6 +80,11 @@ class CustomRole(models.Model):
         if self.is_system:
             raise PermissionError("Критическая ошибка: Нельзя удалить системную роль!")
         super().delete(*args, **kwargs)
+    #добавление с проверкой на рекурсию в родителях
+    def save(self, *args, **kwargs):
+        self.full_clean()  
+        super().save(*args, **kwargs)
+
 
 
 #Декоратор сигналов, читай слушатель событий. Events если угодно как в Ноде
@@ -223,8 +228,6 @@ class AuditLog(models.Model):
         # Автоматически пишем имя пользователя, если передан объект CustomUser
         if self.user and not self.username_snapshot:
             self.username_snapshot = self.user.username
-        super().save(*args, **kwargs)
-        self.full_clean() 
         super().save(*args, **kwargs)
 
 # 7 Чуть не забыл,конечно же - записи пользаков 
