@@ -19,19 +19,28 @@ async function init() {
 
   renderLoading(container);
 
+  const session = getSession();
+  const isOwnProfile = session?.userId === userId;
+
   try {
-    const { data: user } = await api.getUser(userId);
-    const session = getSession();
+    let user;
     let rights = [];
 
-    if (session?.userId === userId) {
-      const res = await api.getMyPermissions();
-      rights = res.data;
+    if (isOwnProfile) {
+      const res = await api.getMe();
+      user = res.data;
+      rights = res.permissions;
+    } else {
+      renderError(
+        container,
+        'Просмотр других пользователей недоступен — на бэкенде нет GET /api/admin/users/:id/'
+      );
+      return;
     }
 
     const rolesHtml = user.roleNames.length
       ? user.roleNames.map((n) => `<span class="role-chip">${n}</span>`).join('')
-      : '<span class="role-chips__empty">Нет ролей</span>';
+      : '<span class="role-chips__empty">Роли не переданы API</span>';
 
     const rightsHtml = rights.length
       ? rights.map((r) => `
@@ -41,12 +50,16 @@ async function init() {
               ${r.allowed ? 'разрешено' : 'запрещено'}
             </span>
           </div>`).join('')
-      : '<p style="color:#64748b">Эффективные права доступны для своего профиля</p>';
+      : '<p style="color:#64748b">Нет данных о правах</p>';
 
     container.innerHTML = `
       <div class="user-page">
         <div class="user-page__left">
           <h1 class="user-page__title">Пользователь · ${user.fullName}</h1>
+          <div class="user-field">
+            <span class="user-field__label">Логин</span>
+            <p>${user.login}</p>
+          </div>
           <div class="user-field">
             <span class="user-field__label">Статус</span>
             <p>${statusLabel(user.status)}</p>

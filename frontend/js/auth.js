@@ -11,8 +11,12 @@ export function getSession() {
   }
 }
 
+export function getToken() {
+  return getSession()?.token ?? null;
+}
+
 export function requireAuth() {
-  if (!getSession()) {
+  if (!getToken()) {
     window.location.replace('login.html');
     return false;
   }
@@ -20,7 +24,7 @@ export function requireAuth() {
 }
 
 export function redirectIfAuthenticated() {
-  if (getSession()) {
+  if (getToken()) {
     window.location.replace('matrix.html');
     return true;
   }
@@ -30,8 +34,7 @@ export function redirectIfAuthenticated() {
 export async function login(username, password) {
   const response = await fetch(`${API_BASE}/auth/login/`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ username, password }),
   });
 
@@ -43,13 +46,39 @@ export async function login(username, password) {
   }
 
   if (!response.ok) {
-    throw new Error(json.detail || 'Неверный логин или пароль');
+    throw new Error(json.error || json.detail || 'Неверный логин или пароль');
+  }
+
+  if (!json.token) {
+    throw new Error('Сервер не вернул токен авторизации');
+  }
+
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ token: json.token }));
+
+  const meResponse = await fetch(`${API_BASE}/auth/me/`, {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Token ${json.token}`,
+    },
+  });
+
+  let me = {};
+  try {
+    me = await meResponse.json();
+  } catch {
+    /* пустой ответ */
+  }
+
+  if (!meResponse.ok) {
+    localStorage.removeItem(SESSION_KEY);
+    throw new Error(me.error || me.detail || 'Не удалось получить профиль');
   }
 
   const session = {
-    username: json.username,
-    fullName: json.full_name || json.username,
-    userId: json.id,
+    token: json.token,
+    username: me.username,
+    fullName: me.username,
+    userId: me.id,
   };
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   return session;
