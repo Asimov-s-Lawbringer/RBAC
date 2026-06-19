@@ -1,5 +1,15 @@
 from .models import RolePermission, CustomRole
 
+
+def merge_access(current, new):
+    """FR-24: явный deny всегда побеждает allow при конфликте."""
+    if new == 'deny' or current == 'deny':
+        return 'deny'
+    if new == 'allow' or current == 'allow':
+        return 'allow'
+    return new or current
+
+
 #Главная функия собирающая все права пользователя
 def calculate_effective_permissions(user):
 
@@ -34,10 +44,11 @@ def calculate_effective_permissions(user):
             #смортим RolePermission и AppPermission и AppSection
             
             for rule in rules:
-                # Ключ для фронта, просто строчка типа 'view_record' и прочих кодов из fixtures
                 perm_key = rule.permission.codename
-                
-                effective_perms[perm_key] = rule.access_type
+                effective_perms[perm_key] = merge_access(
+                    effective_perms.get(perm_key),
+                    rule.access_type,
+                )
 
     return effective_perms
 

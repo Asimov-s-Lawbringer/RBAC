@@ -220,11 +220,9 @@ class AuditLog(models.Model):
         ordering = ['-created_at']
 
     def save(self, *args, **kwargs):
-        # Автоматически пишем имя пользователя, если передан объект CustomUser
         if self.user and not self.username_snapshot:
             self.username_snapshot = self.user.username
-        super().save(*args, **kwargs)
-        self.full_clean() 
+        self.full_clean()
         super().save(*args, **kwargs)
 
 # 7 Чуть не забыл,конечно же - записи пользаков 

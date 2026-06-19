@@ -20,13 +20,16 @@ class LoginView(APIView):
     permission_classes = [] 
 
     def post(self, request):
-        #получаем от юзера все что нужно
         username = request.data.get('username')
         password = request.data.get('password')
 
-        # сверяет пароли сам джанго по бд
-        user = authenticate(username=username, password=password) #вся сложная криптография на плечи спецов
-        #механизм таков: запрос в бд по юзернейму,находим пароль в базе и сравниваем с присланным который хешируем
+        if not username or not password:
+            return Response(
+                {"error": "Логин и пароль обязательны"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = authenticate(username=username, password=password)
 
 
         if user is not None:
