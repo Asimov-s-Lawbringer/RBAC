@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from rbac_auth.views import LoginView, MeView, RecordListView, AuditLogListView, MatrixView
+from rbac_auth.views import LoginView, MeView, RecordListView, AuditLogListView, MatrixView, AdminUserListView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,5 +24,7 @@ urlpatterns = [
     path('api/auth/me/', MeView.as_view(), name='api_me'),
     path('api/records/', RecordListView.as_view(), name='api_records'),
     path('api/admin/audit-logs/', AuditLogListView.as_view(), name='api_audit_logs'),
-    path('api/admin/matrix/', MatrixView.as_view(), name='api_matrix')
+    path('api/admin/matrix/', MatrixView.as_view(), name='api_matrix'),
+    path('api/admin/users/', AdminUserListView.as_view(), name='api_admin_users'),
+    path('api/admin/users/<int:pk>/', AdminUserListView.as_view(), name='api_admin_user_detail')
 ]

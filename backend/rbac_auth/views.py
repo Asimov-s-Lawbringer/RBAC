@@ -12,7 +12,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from .services import calculate_effective_permissions
 from .permissions import HasMatrixPermission
-
+from rbac_auth.models import CustomUser
 
 class LoginView(APIView):
     #Рут для входа в систему POST /api/auth/login/
@@ -194,3 +194,40 @@ class MatrixView(APIView):
                 #функция рассчета должна пойти искать права у родителей роли,если есть конечно.. ну родители в смысле
 
         return Response({"message": "Матрица прав успешно сохранена!"}, status=status.HTTP_200_OK)
+
+class AdminUserListView(APIView):
+
+    #Рут для Экрана Пользователей (GET /api/admin/users/)
+    def get_permissions(self):
+        return [HasMatrixPermission('manage_roles')]
+
+    def get(self, request, pk=None):
+        # Если в URL передан ID (например, /api/admin/users/5/)
+        # То админ открыл карточку конкретного юзера или нажал "Проверить доступ"
+        if pk is not None:
+            try:
+                user = CustomUser.objects.prefetch_related('roles').get(pk=pk)
+                user_roles = [role.name for role in user.roles.all()]
+                
+                return Response({
+                    "id": user.id,
+                    "username": user.username,
+                    "is_blocked": user.is_blocked,
+                    "roles": user_roles,
+                    # рассчитали права конкретного человека
+                    "effective_permissions": calculate_effective_permissions(user)
+                }, status=status.HTTP_200_OK)
+            except CustomUser.DoesNotExist:
+                return Response({"error": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Если ID нет (просто /api/admin/users/) -  То просто легкий список всех
+        users = CustomUser.objects.all().prefetch_related('roles')
+        users_data = []
+        for user in users:
+            users_data.append({
+                "id": user.id,
+                "username": user.username,
+                "is_blocked": user.is_blocked,
+                "roles": [role.name for role in user.roles.all()],
+            })
+        return Response(users_data, status=status.HTTP_200_OK)
