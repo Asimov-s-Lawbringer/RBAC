@@ -1,0 +1,152 @@
+[
+  {
+    "model": "rbac_auth.appsection",
+    "pk": 1,
+    "fields": { "slug": "records", "name": "Записи" }
+  },
+  {
+    "model": "rbac_auth.appsection",
+    "pk": 2,
+    "fields": { "slug": "audit", "name": "Журнал доступа" }
+  },
+  {
+    "model": "rbac_auth.appsection",
+    "pk": 3,
+    "fields": { "slug": "roles", "name": "Управление ролями" }
+  },
+  {
+    "model": "rbac_auth.appsection",
+    "pk": 4,
+    "fields": { "slug": "matrix", "name": "Матрица прав" }
+  },
+
+  {
+    "model": "rbac_auth.apppermission",
+    "pk": 1,
+    "fields": { "section": 1, "codename": "view_records", "description": "Просмотр записей" }
+  },
+  {
+    "model": "rbac_auth.apppermission",
+    "pk": 2,
+    "fields": { "section": 1, "codename": "create_records", "description": "Создание записей" }
+  },
+  {
+    "model": "rbac_auth.apppermission",
+    "pk": 3,
+    "fields": { "section": 1, "codename": "delete_records", "description": "Удаление записей" }
+  },
+  {
+    "model": "rbac_auth.apppermission",
+    "pk": 4,
+    "fields": { "section": 2, "codename": "view_audit", "description": "Просмотр журнала логов" }
+  },
+  {
+    "model": "rbac_auth.apppermission",
+    "pk": 5,
+    "fields": { "section": 2, "codename": "export_audit", "description": "Кнопка Экспорт логов" }
+  },
+  {
+    "model": "rbac_auth.apppermission",
+    "pk": 6,
+    "fields": { "section": 3, "codename": "manage_roles", "description": "Управление ролями и статусами пользователей" }
+  },
+  {
+    "model": "rbac_auth.apppermission",
+    "pk": 7,
+    "fields": { "section": 4, "codename": "view_matrix", "description": "Просмотр матрицы прав" }
+  },
+  {
+    "model": "rbac_auth.apppermission",
+    "pk": 8,
+    "fields": { "section": 4, "codename": "save_matrix", "description": "Кнопка Сохранить матрицу" }
+  },
+
+  {
+    "model": "rbac_auth.customrole",
+    "pk": 1,
+    "fields": { "name": "Пользователь", "description": "Обычный пользователь", "parent": null, "is_system": true }
+  },
+  {
+    "model": "rbac_auth.customrole",
+    "pk": 2,
+    "fields": { "name": "Менеджер", "description": "Управляет контентом", "parent": 1, "is_system": true }
+  },
+  {
+    "model": "rbac_auth.customrole",
+    "pk": 3,
+    "fields": { "name": "Аудитор", "description": "Проверка журналов безопасности", "parent": null, "is_system": true }
+  },
+  {
+    "model": "rbac_auth.customrole",
+    "pk": 4,
+    "fields": { "name": "Администратор", "description": "Полный доступ к системе", "parent": null, "is_system": true }
+  },
+
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 1,
+    "fields": { "role": 1, "permission": 1, "access_type": "allow" }
+  },
+
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 2,
+    "fields": { "role": 2, "permission": 2, "access_type": "allow" }
+  },
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 3,
+    "fields": { "role": 2, "permission": 3, "access_type": "deny" }
+  },
+
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 4,
+    "fields": { "role": 3, "permission": 1, "access_type": "allow" }
+  },
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 5,
+    "fields": { "role": 3, "permission": 4, "access_type": "allow" }
+  },
+
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 6,
+    "fields": { "role": 4, "permission": 1, "access_type": "allow" }
+  },
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 7,
+    "fields": { "role": 4, "permission": 2, "access_type": "allow" }
+  },
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 8,
+    "fields": { "role": 4, "permission": 3, "access_type": "allow" }
+  },
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 9,
+    "fields": { "role": 4, "permission": 4, "access_type": "allow" }
+  },
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 10,
+    "fields": { "role": 4, "permission": 5, "access_type": "allow" }
+  },
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 11,
+    "fields": { "role": 4, "permission": 6, "access_type": "allow" }
+  },
+  {
+    "model": "rbac_auth.rolepermission",
+    "pk": 12,
+    "fields": { "role": 4, "permission": 7, "access_type": "allow" }
+  },    {
+    "model": "rbac_auth.rolepermission",
+    "pk": 13,
+    "fields": { "role": 4, "permission": 8, "access_type": "allow" }
+  }
+]
